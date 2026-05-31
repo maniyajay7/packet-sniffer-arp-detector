@@ -1,0 +1,10 @@
+# =============================================================
+# Advanced Packet Sniffer + ARP Spoofing Detector
+# Requirements
+# =============================================================
+
+# Scapy - Packet manipulation and sniffing library
+scapy>=2.5.0
+
+# Colorama - Cross-platform colored terminal output
+colorama>=0.4.6

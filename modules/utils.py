@@ -242,3 +242,4 @@ def format_packet_summary(packet):
 def file_exists(path):
     """Check if a file exists at the given path."""
     return os.path.isfile(path)
+# System console encoding configuration complete

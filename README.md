@@ -1,6 +1,8 @@
-# 🛡️ Advanced Packet Sniffer + ARP Spoofing Detector
+# 🛡️ CwX Edition — Advanced Packet Sniffer + ARP Spoofing Detector
 
-A **defensive cybersecurity CLI tool** built with Python and [Scapy](https://scapy.net/) that captures network packets, analyses traffic, and detects ARP spoofing attacks in real-time by monitoring IP-to-MAC address mappings.
+A **defensive cybersecurity interactive tool** built with Python, [Scapy](https://scapy.net/), and [Rich](https://rich.readthedocs.io/). It captures network packets, analyses traffic, and detects ARP spoofing attacks in real-time by monitoring IP-to-MAC address mappings.
+
+The **CwX Edition** introduces a beautiful, interactive Terminal User Interface (TUI) with a boot sequence, branded menus, and formatted tables.
 
 > ⚠️ **This tool is for authorised networks only.** See [ETHICAL_NOTICE.md](ETHICAL_NOTICE.md) for details.
 
@@ -14,7 +16,7 @@ A **defensive cybersecurity CLI tool** built with Python and [Scapy](https://sca
 - [Installation](#-installation)
   - [Linux Setup](#linux-setup)
   - [Windows Setup](#windows-setup)
-- [CLI Usage](#-cli-usage)
+- [Usage (Interactive & CLI)](#-usage-interactive--cli)
 - [Demo Workflow](#-demo-workflow)
 - [Screenshots Guide](#-screenshots-guide)
 - [Troubleshooting](#-troubleshooting)
@@ -26,19 +28,18 @@ A **defensive cybersecurity CLI tool** built with Python and [Scapy](https://sca
 
 | # | Feature | Description |
 |---|---------|-------------|
-| 1 | **CLI Interface** | Full `argparse`-based CLI with help, modes, and options |
+| 1 | **CwX Interactive Menu** | Numbered menu system inside a Rich Panel with `cwx>` prompt |
 | 2 | **Live Packet Sniffing** | Capture packets in real-time on any network interface |
-| 3 | **PCAP File Analysis** | Analyse previously captured `.pcap` files offline |
+| 3 | **PCAP File Analysis** | Analyse previously captured `.pcap` files offline with progress bars |
 | 4 | **ARP Spoofing Detection** | Monitor IP→MAC mappings and alert on suspicious changes |
-| 5 | **IP-to-MAC Table** | Live mapping table built from observed ARP traffic |
+| 5 | **Rich IP-to-MAC Table** | Live mapping table built from observed ARP traffic |
 | 6 | **MAC Change Detection** | Detects when the same IP starts using a different MAC |
-| 7 | **Terminal Alerts** | Colour-coded real-time alerts for suspicious activity |
+| 7 | **Formatted Alerts** | Colour-coded real-time alerts for suspicious activity |
 | 8 | **Logging System** | Persistent log files with timestamps and severity levels |
 | 9 | **PCAP Export** | Save captured packets to a `.pcap` file for later analysis |
-| 10 | **Packet Summaries** | Human-readable one-line summaries for each packet |
-| 11 | **Cross-Platform** | Runs on both Linux and Windows |
-| 12 | **Error Handling** | Clear messages for permission and interface issues |
-| 13 | **Well-Commented Code** | Beginner-friendly, modular, clean codebase |
+| 10 | **System Info** | View architecture & config overview directly from the menu |
+| 11 | **Cross-Platform** | Runs flawlessly on both Linux and Windows |
+| 12 | **Backward Compatible** | Full CLI mode still available via `argparse` |
 
 ---
 
@@ -54,19 +55,11 @@ In an ARP spoofing (or ARP poisoning) attack, a malicious device sends **fake AR
 
 ### How This Tool Detects It
 
-```
-Normal situation:
-  ARP Reply: 192.168.1.1 is at AA:BB:CC:DD:EE:FF   ← Legitimate gateway
-
-Spoofing detected:
-  ARP Reply: 192.168.1.1 is at 11:22:33:44:55:66   ← Different MAC! ALERT!
-```
-
 The detection engine works in **3 steps**:
 
 1. **Build a mapping table** — For every ARP packet observed, record the IP→MAC association.
 2. **Compare on each ARP reply** — When a new ARP reply arrives, check if we've seen this IP before. If the MAC address is **different** from the stored one, raise an alert.
-3. **Flag gratuitous ARPs** — ARP replies where the sender IP equals the target IP are flagged as potentially suspicious (though they can also be legitimate).
+3. **Flag gratuitous ARPs** — ARP replies where the sender IP equals the target IP are flagged as potentially suspicious.
 
 This approach is **purely passive** — the tool only reads packets; it never sends, modifies, or injects any traffic.
 
@@ -77,18 +70,18 @@ This approach is **purely passive** — the tool only reads packets; it never se
 ```
 packet-sniffer-arp-detector/
 │
-├── main.py                    # CLI entry-point (argparse)
+├── main.py                    # CwX TUI entry-point & CLI parsing
 ├── generate_sample_pcap.py    # Creates sample PCAP for safe testing
-├── requirements.txt           # Python dependencies
+├── requirements.txt           # Python dependencies (scapy, rich)
 ├── README.md                  # This file
 ├── ETHICAL_NOTICE.md           # Legal and ethical guidelines
 │
 ├── modules/                   # Core modules
 │   ├── __init__.py            # Package initialiser
-│   ├── sniffer.py             # Packet capture & PCAP analysis
-│   ├── arp_detector.py        # ARP spoofing detection engine
-│   ├── logger.py              # Logging and alert system
-│   └── utils.py               # Utility/helper functions
+│   ├── sniffer.py             # Packet capture & PCAP analysis (Rich)
+│   ├── arp_detector.py        # ARP spoofing detection engine (Rich)
+│   ├── logger.py              # Logging and alert system (Rich)
+│   └── utils.py               # CwX UI components & cross-platform utils
 │
 ├── logs/                      # Auto-generated log files
 │   └── YYYY-MM-DD_alerts.log  # Daily log file
@@ -124,11 +117,11 @@ pip install -r requirements.txt
 # 4. Generate the sample PCAP for testing
 python generate_sample_pcap.py
 
-# 5. Test with the sample PCAP (no root needed)
-python main.py --pcap samples/sample_traffic.pcap --verbose
+# 5. Run the CwX Interactive Menu (no root needed for PCAP analysis)
+python main.py
 
-# 6. For live capture, run with sudo
-sudo python main.py --live --interface eth0 --verbose
+# 6. For live capture, run the menu with sudo
+sudo python main.py
 ```
 
 > 💡 **Note:** Live packet capture on Linux requires **root** privileges (`sudo`) because raw sockets are used.
@@ -156,75 +149,55 @@ pip install -r requirements.txt
 # 6. Generate the sample PCAP for testing
 python generate_sample_pcap.py
 
-# 7. Test with the sample PCAP (no admin needed)
-python main.py --pcap samples/sample_traffic.pcap --verbose
-
-# 8. For live capture (requires Administrator)
-python main.py --live --interface "Wi-Fi" --verbose
+# 7. Run the CwX Interactive Menu (requires Admin for Live Capture)
+python main.py
 ```
 
-> ⚠️ **Windows users MUST install [Npcap](https://npcap.com/#download)** for live packet capture. Without it, Scapy cannot access raw sockets. Make sure to enable "WinPcap API-compatible Mode" during installation.
+> ⚠️ **Windows users MUST install [Npcap](https://npcap.com/#download)** for live packet capture. Without it, Scapy cannot access raw sockets.
 
 ---
 
-## 💻 CLI Usage
+## 💻 Usage (Interactive & CLI)
 
-### View Help
+The CwX Edition operates in two modes:
+
+### 1. Interactive Menu Mode (Default)
+
+Simply run the script with no arguments to launch the CwX TUI:
 
 ```bash
+python main.py
+```
+
+You will see the boot sequence and then the main menu:
+1. **Live Capture**: Sniffs on an interface (prompts for details)
+2. **Analyse PCAP**: Reads an offline file
+3. **Generate Sample PCAP**: Quickly rebuilds the sample traffic file
+4. **List Interfaces**: Shows available network interfaces
+5. **View Audit Logs**: Displays recent alert history
+6. **System Info**: View architecture & config
+0. **Exit**
+
+### 2. CLI Mode (Backward Compatible)
+
+If you prefer automation or direct command-line execution, the original `argparse` flags still work:
+
+```bash
+# View Help
 python main.py -h
-```
 
-### List Available Interfaces
-
-```bash
+# List Available Interfaces
 python main.py --list-interfaces
-```
 
-### Live Capture
-
-```bash
-# Basic live capture on Linux
+# Basic live capture
 sudo python main.py --live --interface eth0
 
-# Live capture on Windows (Wi-Fi)
-python main.py --live --interface "Wi-Fi"
-
-# Verbose mode (print every packet)
-sudo python main.py --live --interface eth0 --verbose
-
-# Capture 100 packets then stop
-sudo python main.py --live --interface eth0 --count 100
-
-# Capture for 60 seconds
-sudo python main.py --live --interface eth0 --timeout 60
+# Analyse a sample PCAP file
+python main.py --pcap samples/sample_traffic.pcap --verbose
 
 # Save captured packets to a file
 sudo python main.py --live --interface eth0 --save output/capture.pcap
 ```
-
-### PCAP File Analysis
-
-```bash
-# Analyse a sample PCAP file
-python main.py --pcap samples/sample_traffic.pcap
-
-# Analyse with verbose output
-python main.py --pcap samples/sample_traffic.pcap --verbose
-```
-
-### All CLI Options
-
-| Option | Short | Description |
-|--------|-------|-------------|
-| `--live` | | Start live packet capture |
-| `--pcap FILE` | | Analyse a PCAP file |
-| `--list-interfaces` | | List network interfaces |
-| `--interface NAME` | `-i` | Network interface for live capture |
-| `--count N` | `-c` | Capture N packets (0 = unlimited) |
-| `--timeout N` | `-t` | Stop after N seconds |
-| `--save FILE` | `-s` | Save packets to PCAP file |
-| `--verbose` | `-v` | Print every packet to terminal |
 
 ---
 
@@ -232,145 +205,39 @@ python main.py --pcap samples/sample_traffic.pcap --verbose
 
 Follow these steps to safely demonstrate the tool's capabilities:
 
-### Step 1: Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### Step 2: Generate Sample PCAP
-
-```bash
-python generate_sample_pcap.py
-```
-
-This creates `samples/sample_traffic.pcap` containing:
-- Normal ARP requests and replies
-- Normal TCP, UDP, and ICMP traffic
-- **Simulated ARP spoofing** (same IP, different MAC)
-- A gratuitous ARP packet
-
-### Step 3: Analyse the Sample PCAP
-
-```bash
-python main.py --pcap samples/sample_traffic.pcap --verbose
-```
-
-**Expected output:**
-1. Banner and ethical notice
-2. Each packet printed with a timestamp and summary
-3. **ARP spoofing alerts** when the detector sees `192.168.1.1` change from `AA:BB:CC:DD:EE:FF` to `11:22:33:44:55:66`
-4. A warning for the gratuitous ARP packet
-5. The final IP→MAC mapping table
-6. An alert summary showing all detections
-7. Session statistics
-
-### Step 4: (Optional) Live Capture
-
-If you have root/admin access on your own network:
-
-```bash
-# Linux
-sudo python main.py --live --interface eth0 --verbose --timeout 30
-
-# Windows (run as Administrator)
-python main.py --live --interface "Wi-Fi" --verbose --timeout 30
-```
-
-### Step 5: Check the Logs
-
-```bash
-# View today's log file
-cat logs/$(date +%Y-%m-%d)_alerts.log      # Linux
-type logs\2026-06-09_alerts.log             # Windows
-```
+1. **Install Dependencies:** `pip install -r requirements.txt`
+2. **Start the Tool:** `python main.py`
+3. **Generate Traffic:** Choose option `3` to generate the sample PCAP.
+4. **Analyse Traffic:** Choose option `2`, then type `samples/sample_traffic.pcap` when prompted.
+5. **Observe Alerts:** Watch the Rich Progress bar, the packet summaries, and the **Red ARP spoofing alerts** (for IP `192.168.1.1`).
+6. **Review:** Check the generated Rich Mapping Table and Alert Summary Panel.
+7. **Audit:** Choose option `5` to view the audit logs table.
 
 ---
 
 ## 📸 Screenshots Guide
 
-For your project submission, capture the following screenshots:
+For your project submission, capture the following screenshots showing off the new UI:
 
-### Screenshot 1: Help Screen
-```bash
-python main.py -h
-```
-> Capture the full help output showing all available options.
-
-### Screenshot 2: Sample PCAP Generation
-```bash
-python generate_sample_pcap.py
-```
-> Shows the sample file being created.
-
-### Screenshot 3: PCAP Analysis with Verbose Output
-```bash
-python main.py --pcap samples/sample_traffic.pcap --verbose
-```
-> Capture the full terminal output. This will show:
-> - The banner
-> - Packet-by-packet summaries
-> - **Red ARP spoofing alerts** (highlight these)
-> - Yellow gratuitous ARP warning
-> - The IP→MAC table
-> - The alert summary
-
-### Screenshot 4: ARP Spoofing Alert (Close-Up)
-> Zoom in on the red `[ALERT]` lines showing the IP, old MAC, and new MAC.
-
-### Screenshot 5: IP→MAC Mapping Table
-> Capture the formatted table showing all observed IP→MAC pairs.
-
-### Screenshot 6: Session Statistics
-> Capture the final statistics block showing packet counts and alert counts.
-
-### Screenshot 7: Log File Contents
-```bash
-type logs\YYYY-MM-DD_alerts.log
-```
-> Show the persistent log file with timestamped entries.
-
-### Screenshot 8: (Optional) Live Capture
-> If possible, capture a screenshot of live packet sniffing on your own network.
-
-### Screenshot 9: Interface Listing
-```bash
-python main.py --list-interfaces
-```
-> Shows available network interfaces.
+1. **Boot Sequence:** Run `python main.py` and capture the animated progress bars.
+2. **Main Menu:** Capture the CwX ASCII banner and the interactive numbered options.
+3. **System Info:** Select option `6` to show the beautiful system information panel.
+4. **PCAP Analysis (Verbose):** Select option `2` and analyze `samples/sample_traffic.pcap`. Capture the colorful packet summaries and the progress bar.
+5. **ARP Alerts & Tables:** During the analysis, capture the **red spoofing alerts** and the final **IP-to-MAC mapping table**.
+6. **Audit Logs:** Select option `5` to show the recent logs formatted cleanly in a Rich table.
+7. **CLI Help Screen:** Run `python main.py --help` to show the backward-compatible mode.
 
 ---
 
 ## 🔧 Troubleshooting
 
-### Linux
-
 | Problem | Solution |
 |---------|----------|
-| `Permission denied` / `Operation not permitted` | Run with `sudo`: `sudo python main.py --live --interface eth0` |
-| `Interface not found` | Run `python main.py --list-interfaces` to see available interfaces. Use the exact name (e.g., `eth0`, `wlan0`, `enp0s3`). |
-| `ModuleNotFoundError: scapy` | Install dependencies: `pip install -r requirements.txt` |
-| `OSError: [Errno 19] No such device` | The interface name is wrong. Check with `ip link show` or `ifconfig`. |
-| Scapy warnings about `tcpdump` | Install tcpdump: `sudo apt install tcpdump` (optional, for additional features). |
-
-### Windows
-
-| Problem | Solution |
-|---------|----------|
-| `Npcap not found` / `WinPcap not found` | Install [Npcap](https://npcap.com/#download) with "WinPcap API-compatible Mode" checked. |
-| `Insufficient privileges` | Right-click your terminal → **Run as Administrator**. |
-| `Interface not found` | Run `python main.py --list-interfaces`. On Windows, try `"Wi-Fi"`, `"Ethernet"`, or the GUID shown. |
-| `RuntimeError: Sniffing and sending packets is not available` | Ensure Npcap is installed and you're running as Administrator. |
-| `ImportError: DLL load failed` | Reinstall Npcap. Make sure the installation completed successfully. |
-| `UnicodeEncodeError` in terminal | Run `chcp 65001` before running the tool, or use Windows Terminal (not CMD). |
-
-### General
-
-| Problem | Solution |
-|---------|----------|
-| No ARP alerts during live capture | ARP traffic may be minimal on a quiet network. Try generating traffic (e.g., `ping` another device) or use the sample PCAP for demonstration. |
-| Verbose mode is too noisy | Remove `--verbose` to only see alerts and summaries. |
-| Want to capture specific traffic | Use `--count N` to limit packets or `--timeout N` to limit duration. |
+| `Permission denied` / `Operation not permitted` | Run with `sudo` (Linux) or **Run as Administrator** (Windows). |
+| `Interface not found` | Use option `4` in the menu to list interfaces. Use the exact name shown. |
+| `ModuleNotFoundError: rich` or `scapy` | Install dependencies: `pip install -r requirements.txt` |
+| Windows: `RuntimeError: Sniffing... not available` | Ensure [Npcap](https://npcap.com/#download) is installed in "WinPcap API-compatible Mode". |
+| Missing `sample_traffic.pcap` | Choose option `3` in the main menu to regenerate it. |
 
 ---
 
@@ -389,14 +256,8 @@ relevant laws (IT Act 2000, CFAA, GDPR, etc.).
 
 ---
 
-## 📄 License
-
-This project is created for **educational purposes** as a cybersecurity practical/project submission. Use responsibly.
-
----
-
 ## 🙏 Acknowledgements
 
 - [Scapy](https://scapy.net/) — Powerful Python packet manipulation library
-- [Colorama](https://pypi.org/project/colorama/) — Cross-platform coloured terminal output
+- [Rich](https://rich.readthedocs.io/) — Python library for beautiful terminal formatting
 - [Npcap](https://npcap.com/) — Windows packet capture library

@@ -131,3 +131,4 @@ def log_packet_summary(summary, verbose=False):
 def get_log_filepath():
     """Return the absolute path of today's log file."""
     return _log_filepath
+# Windows cp1252 output encoding fallback

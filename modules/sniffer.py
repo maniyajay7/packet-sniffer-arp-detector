@@ -1,6 +1,6 @@
 # =============================================================
 # modules/sniffer.py
-# Packet Sniffer Module
+# Packet Sniffer Module — CwX Edition
 # =============================================================
 # Handles two capture modes:
 #   1. LIVE capture  — sniffs packets on a given network
@@ -17,7 +17,17 @@
 import os
 import sys
 
-from colorama import Fore, Style
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import (
+    Progress,
+    SpinnerColumn,
+    BarColumn,
+    TextColumn,
+    TaskProgressColumn,
+    TimeElapsedColumn,
+)
+from rich import box
 
 # Scapy imports — grouped here for clarity
 from scapy.all import sniff, wrpcap, rdpcap, conf
@@ -37,6 +47,9 @@ from modules.utils import (
     validate_interface,
     list_interfaces,
 )
+
+# ── Console instance ─────────────────────────────────────────────
+console = Console(force_terminal=True)
 
 
 class PacketSniffer:
@@ -120,9 +133,9 @@ class PacketSniffer:
         if self.interface and not validate_interface(self.interface):
             log_warning(
                 f"Interface '{self.interface}' not found in the system's "
-                "interface list. Attempting capture anyway…"
+                "interface list. Attempting capture anyway..."
             )
-            print(f"\n{Fore.YELLOW}Available interfaces:{Style.RESET_ALL}")
+            console.print()
             list_interfaces()
 
         # Suppress Scapy's default verbose output
@@ -130,16 +143,23 @@ class PacketSniffer:
 
         log_info(
             f"Starting live capture on '{self.interface}' "
-            f"(count={count}, timeout={timeout})…"
+            f"(count={count}, timeout={timeout})..."
         )
-        print(
-            f"{Fore.GREEN}[+] Sniffing on interface: "
-            f"{self.interface}{Style.RESET_ALL}"
+
+        console.print(
+            Panel(
+                f"[bold bright_green]Live capture is now ACTIVE.[/bold bright_green]\n\n"
+                f"[white]Interface : [bold]{self.interface}[/bold][/white]\n"
+                f"[white]Count     : [bold]{count if count else 'unlimited'}[/bold][/white]\n"
+                f"[white]Timeout   : [bold]{timeout if timeout else 'none'}[/bold][/white]\n\n"
+                f"[dim]Press Ctrl+C to stop capturing.[/dim]",
+                title="[bold][*] LIVE SNIFFER[/bold]",
+                border_style="bright_green",
+                box=box.HEAVY,
+                padding=(1, 2),
+            )
         )
-        print(
-            f"{Fore.GREEN}[+] Press Ctrl+C to stop capturing."
-            f"{Style.RESET_ALL}\n"
-        )
+        console.print()
 
         try:
             sniff(
@@ -157,17 +177,22 @@ class PacketSniffer:
         except OSError as exc:
             log_error(f"OS error during capture: {exc}")
             if "Npcap" in str(exc) or "WinPcap" in str(exc):
-                print(
-                    f"\n{Fore.YELLOW}[!] It looks like Npcap is not "
-                    "installed. Download it from:\n"
-                    "    https://npcap.com/#download\n"
-                    f"    Install with 'WinPcap API-compatible Mode'.{Style.RESET_ALL}\n"
+                console.print(
+                    Panel(
+                        "[bold yellow][!] Npcap is not installed.[/bold yellow]\n\n"
+                        "[white]Download it from:[/white]\n"
+                        "[dim]https://npcap.com/#download[/dim]\n\n"
+                        "[white]Install with 'WinPcap API-compatible Mode'.[/white]",
+                        border_style="yellow",
+                        box=box.ROUNDED,
+                        padding=(1, 2),
+                    )
                 )
             sys.exit(1)
         except KeyboardInterrupt:
             # Graceful exit on Ctrl+C
-            print(
-                f"\n{Fore.YELLOW}[!] Capture stopped by user.{Style.RESET_ALL}"
+            console.print(
+                "\n  [bold yellow][!] Capture stopped by user.[/bold yellow]"
             )
         finally:
             self._finalise()
@@ -199,9 +224,27 @@ class PacketSniffer:
             sys.exit(1)
 
         log_info(f"Loaded {len(packets)} packets from {pcap_path}.")
+        console.print()
 
-        for pkt in packets:
-            self._process_packet(pkt)
+        # Process packets with a Rich progress bar
+        with Progress(
+            SpinnerColumn(spinner_name="dots", style="cyan"),
+            TextColumn("[bold white]Analysing:[/bold white] {task.description}"),
+            BarColumn(
+                bar_width=40, complete_style="bright_green", finished_style="green"
+            ),
+            TaskProgressColumn(),
+            TimeElapsedColumn(),
+            console=console,
+        ) as progress:
+            task = progress.add_task(
+                os.path.basename(pcap_path),
+                total=len(packets),
+            )
+
+            for pkt in packets:
+                self._process_packet(pkt)
+                progress.advance(task)
 
         self._finalise()
 
@@ -228,16 +271,26 @@ class PacketSniffer:
         self.arp_detector.print_arp_table()
         self.arp_detector.print_alert_summary()
 
-        # Session statistics
+        # Session statistics in a Rich Panel
         stats = self.arp_detector.get_stats()
-        print(
-            f"{Fore.CYAN}{'=' * 60}{Style.RESET_ALL}\n"
-            f"  Session Statistics\n"
-            f"{Fore.CYAN}{'=' * 60}{Style.RESET_ALL}\n"
-            f"  Total packets processed : {self.packet_count}\n"
-            f"  ARP packets analysed    : {self.arp_packet_count}\n"
-            f"  Unique IPs in ARP table : {stats['total_ips']}\n"
-            f"  Spoofing alerts raised  : {stats['alert_count']}\n"
-            f"  Log file                : {get_log_filepath()}\n"
-            f"{Fore.CYAN}{'=' * 60}{Style.RESET_ALL}\n"
+        stats_text = (
+            f"[bold white]Total packets processed :[/bold white]  "
+            f"[bright_white]{self.packet_count}[/bright_white]\n"
+            f"[bold white]ARP packets analysed    :[/bold white]  "
+            f"[bright_white]{self.arp_packet_count}[/bright_white]\n"
+            f"[bold white]Unique IPs in ARP table :[/bold white]  "
+            f"[bright_white]{stats['total_ips']}[/bright_white]\n"
+            f"[bold bright_red]Spoofing alerts raised  :[/bold bright_red]  "
+            f"[bright_white]{stats['alert_count']}[/bright_white]\n"
+            f"\n[dim]Audit log → {get_log_filepath()}[/dim]"
+        )
+
+        console.print(
+            Panel(
+                stats_text,
+                title="[bold bright_white]:: Session Statistics[/bold bright_white]",
+                border_style="bright_cyan",
+                box=box.DOUBLE_EDGE,
+                padding=(1, 3),
+            )
         )

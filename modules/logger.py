@@ -1,10 +1,10 @@
 # =============================================================
 # modules/logger.py
-# Logging and Alert System
+# Logging and Alert System — CwX Edition
 # =============================================================
 # Provides two log destinations:
 #   1. A rotating file log   → logs/<date>_alerts.log
-#   2. Coloured terminal output for real-time alerts
+#   2. Rich-formatted terminal output for real-time alerts
 #
 # All log messages include a timestamp, severity level, and a
 # human-readable description.
@@ -14,9 +14,12 @@ import os
 import logging
 from datetime import datetime
 
-from colorama import Fore, Style
+from rich.console import Console
 
 from modules.utils import timestamp
+
+# ── Console instance (force_terminal for Windows compatibility) ───
+console = Console(force_terminal=True)
 
 
 # ------------------------------------------------------------------
@@ -55,25 +58,31 @@ logger.addHandler(_file_handler)
 def log_info(message):
     """
     Log an informational message to the file and print it in
-    green to the terminal.
+    green to the terminal using Rich markup.
 
     Args:
         message (str): The message to log.
     """
     logger.info(message)
-    print(f"{Fore.GREEN}[INFO]  {timestamp()} | {message}{Style.RESET_ALL}")
+    console.print(
+        f"  [bold bright_green][+][/bold bright_green] "
+        f"[white]{timestamp()} | {message}[/white]"
+    )
 
 
 def log_warning(message):
     """
     Log a warning message (potential issue) to the file and print
-    it in yellow to the terminal.
+    it in yellow to the terminal using Rich markup.
 
     Args:
         message (str): The message to log.
     """
     logger.warning(message)
-    print(f"{Fore.YELLOW}[WARN]  {timestamp()} | {message}{Style.RESET_ALL}")
+    console.print(
+        f"  [bold bright_yellow][!][/bold bright_yellow] "
+        f"[yellow]{timestamp()} | {message}[/yellow]"
+    )
 
 
 def log_alert(message):
@@ -85,10 +94,10 @@ def log_alert(message):
         message (str): The alert message.
     """
     logger.critical(message)
-    print(
-        f"{Fore.RED}{Style.BRIGHT}"
-        f"[ALERT] {timestamp()} | !! {message}"
-        f"{Style.RESET_ALL}"
+    console.print(
+        f"  [bold bright_red][!!] ALERT[/bold bright_red] "
+        f"[white]{timestamp()}[/white]\n"
+        f"  [bold red]{message}[/bold red]"
     )
 
 
@@ -100,7 +109,10 @@ def log_error(message):
         message (str): The error description.
     """
     logger.error(message)
-    print(f"{Fore.RED}[ERROR] {timestamp()} | {message}{Style.RESET_ALL}")
+    console.print(
+        f"  [bold red][-] ERROR[/bold red] "
+        f"[white]{timestamp()} | {message}[/white]"
+    )
 
 
 def log_debug(message):
@@ -125,10 +137,11 @@ def log_packet_summary(summary, verbose=False):
     """
     logger.info(summary)
     if verbose:
-        print(f"{Fore.WHITE}{summary}{Style.RESET_ALL}")
+        console.print(f"  [dim white]{summary}[/dim white]")
 
 
 def get_log_filepath():
     """Return the absolute path of today's log file."""
     return _log_filepath
+
 # Windows cp1252 output encoding fallback

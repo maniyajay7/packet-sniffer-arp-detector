@@ -1,6 +1,6 @@
 # =============================================================
 # modules/utils.py
-# Utility / Helper Functions
+# Utility / Helper Functions — CwX Edition
 # =============================================================
 # This module provides cross-platform helper functions used by
 # the other modules: privilege checks, interface listing,
@@ -12,42 +12,79 @@ import sys
 import platform
 from datetime import datetime
 
-from colorama import Fore, Style
+from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
+from rich import box
 
-# Ensure stdout can handle UTF-8 on Windows (avoids cp1252 crashes)
+# ── Force UTF-8 on Windows to prevent cp1252 encoding crashes ────
 if sys.platform == "win32":
+    os.environ["PYTHONIOENCODING"] = "utf-8"
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
         sys.stderr.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
         pass  # Fallback silently if reconfigure is unavailable
 
+# force_terminal bypasses the legacy Windows console renderer
+# that cannot handle Unicode block characters
+console = Console(force_terminal=True)
 
-# ----- Constants -----
-BANNER = """
-+==============================================================+
-|      Advanced Packet Sniffer + ARP Spoofing Detector         |
-|      ------------------------------------------------        |
-|      Defensive Network Monitoring Tool (Scapy)               |
-|      For authorised networks only.                           |
-+==============================================================+
+
+# ----- CwX Branding Constants -----
+
+CWX_BANNER = """
+[bold cyan]
+   CCCCCC  W       W  X     X
+  C        W       W   X   X
+  C        W   W   W    X X
+  C        W  W W  W   X   X
+   CCCCCC   WW   WW   X     X
+[/bold cyan]
 """
+
+SUBTITLE = (
+    "[dim white]Advanced Packet Sniffer + ARP Detector[/dim white]  "
+    "[bold yellow]│[/bold yellow]  "
+    "[dim white]Defensive Network Monitor[/dim white]  "
+    "[bold yellow]│[/bold yellow]  "
+    "[dim cyan]v2.0 - 2026[/dim cyan]"
+)
+
+AUTHOR_LINE = (
+    "[dim]Developed by [bold bright_white]Maniya Jay Maheshbhai[/bold bright_white]"
+    " - [italic]24DCS050 | DEPSTAR[/italic][/dim]"
+)
 
 
 def print_banner():
-    """Print the application banner in cyan."""
-    print(Fore.CYAN + BANNER + Style.RESET_ALL)
+    """Print the CwX branded ASCII art banner with subtitle and author."""
+    from rich.align import Align
+
+    console.print(Align.center(CWX_BANNER))
+    console.print(Align.center(SUBTITLE))
+    console.print(Align.center(AUTHOR_LINE))
+    console.print()
 
 
 def print_ethical_notice():
-    """Print a short ethical / legal reminder at startup."""
-    notice = (
-        f"{Fore.YELLOW}[!] ETHICAL NOTICE:{Style.RESET_ALL} "
-        "Use this tool ONLY on networks you own or have explicit permission "
-        "to monitor. Unauthorised packet sniffing is illegal in most "
-        "jurisdictions. See ETHICAL_NOTICE.md for details.\n"
+    """Print a short ethical / legal reminder at startup inside a Rich Panel."""
+    notice_text = (
+        "[bold yellow][!] ETHICAL NOTICE[/bold yellow]\n\n"
+        "[white]Use this tool ONLY on networks you own or have explicit "
+        "permission to monitor. Unauthorised packet sniffing is illegal "
+        "in most jurisdictions.[/white]\n\n"
+        "[dim]See ETHICAL_NOTICE.md for details.[/dim]"
     )
-    print(notice)
+    console.print(
+        Panel(
+            notice_text,
+            border_style="yellow",
+            box=box.ROUNDED,
+            padding=(1, 2),
+        )
+    )
+    console.print()
 
 
 # ------------------------------------------------------------------
@@ -95,20 +132,32 @@ def require_privileges():
     Called before any live-capture operation.
     """
     if not check_privileges():
-        print(
-            f"\n{Fore.RED}[✗] Insufficient privileges!{Style.RESET_ALL}\n"
-        )
+        console.print()
         if platform.system() == "Windows":
-            print(
-                "    On Windows, right-click your terminal and select\n"
-                '    "Run as Administrator", then try again.\n'
-                "    Also make sure Npcap is installed:\n"
-                "    https://npcap.com/#download\n"
+            console.print(
+                Panel(
+                    "[bold red][-] Insufficient privileges![/bold red]\n\n"
+                    "[white]On Windows, right-click your terminal and select\n"
+                    '"Run as Administrator", then try again.[/white]\n\n'
+                    "[dim]Also make sure Npcap is installed:\n"
+                    "https://npcap.com/#download[/dim]",
+                    title="[bold red]Permission Error[/bold red]",
+                    border_style="red",
+                    box=box.HEAVY,
+                    padding=(1, 2),
+                )
             )
         else:
-            print(
-                "    On Linux / macOS, run with sudo:\n"
-                "      sudo python main.py --live --interface eth0\n"
+            console.print(
+                Panel(
+                    "[bold red][-] Insufficient privileges![/bold red]\n\n"
+                    "[white]On Linux / macOS, run with sudo:[/white]\n"
+                    "[dim]  sudo python main.py --live --interface eth0[/dim]",
+                    title="[bold red]Permission Error[/bold red]",
+                    border_style="red",
+                    box=box.HEAVY,
+                    padding=(1, 2),
+                )
             )
         sys.exit(1)
 
@@ -120,19 +169,33 @@ def require_privileges():
 def list_interfaces():
     """
     List available network interfaces using Scapy's built-in
-    utility.  Prints a formatted table to the terminal.
+    utility.  Prints a formatted Rich Table to the terminal.
     """
     try:
         from scapy.arch import get_if_list
         interfaces = get_if_list()
-        print(f"\n{Fore.GREEN}[+] Available network interfaces:{Style.RESET_ALL}")
+
+        table = Table(
+            title="[bold bright_white]Available Network Interfaces[/bold bright_white]",
+            box=box.ROUNDED,
+            border_style="bright_cyan",
+            header_style="bold bright_white on dark_blue",
+            show_lines=True,
+            padding=(0, 1),
+        )
+        table.add_column("#", style="dim", width=4, justify="center")
+        table.add_column("Interface Name", style="white")
+
         for idx, iface in enumerate(interfaces, start=1):
-            print(f"    {idx}. {iface}")
-        print()
+            table.add_row(str(idx), iface)
+
+        console.print()
+        console.print(table)
+        console.print()
         return interfaces
     except Exception as exc:
-        print(
-            f"{Fore.RED}[✗] Could not list interfaces: {exc}{Style.RESET_ALL}"
+        console.print(
+            f"[bold red][-] Could not list interfaces: {exc}[/bold red]"
         )
         return []
 
@@ -242,4 +305,5 @@ def format_packet_summary(packet):
 def file_exists(path):
     """Check if a file exists at the given path."""
     return os.path.isfile(path)
+
 # System console encoding configuration complete

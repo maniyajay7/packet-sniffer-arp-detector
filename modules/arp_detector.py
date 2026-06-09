@@ -1,6 +1,6 @@
 # =============================================================
 # modules/arp_detector.py
-# ARP Spoofing Detection Engine
+# ARP Spoofing Detection Engine — CwX Edition
 # =============================================================
 # This module maintains an IP-to-MAC mapping table and inspects
 # every ARP packet for signs of spoofing:
@@ -16,10 +16,17 @@
 # =============================================================
 
 from collections import defaultdict
-from colorama import Fore, Style
+
+from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
+from rich import box
 
 from modules.logger import log_alert, log_info, log_warning, log_debug
 from modules.utils import format_mac, timestamp
+
+# ── Console instance ─────────────────────────────────────────────
+console = Console(force_terminal=True)
 
 
 class ARPDetector:
@@ -151,61 +158,70 @@ class ARPDetector:
     def print_arp_table(self):
         """
         Print the current IP-to-MAC mapping table to the terminal
-        in a nicely formatted table.
+        using a Rich Table with styled borders and headers.
         """
-        print(
-            f"\n{Fore.CYAN}{'=' * 60}{Style.RESET_ALL}"
+        table = Table(
+            title="[bold bright_white]IP → MAC Mapping Table[/bold bright_white]",
+            box=box.DOUBLE_EDGE,
+            border_style="bright_cyan",
+            header_style="bold bright_white on dark_blue",
+            show_lines=True,
+            padding=(0, 1),
         )
-        print(
-            f"{Fore.CYAN}  Current IP -> MAC Mapping Table{Style.RESET_ALL}"
-        )
-        print(
-            f"{Fore.CYAN}{'=' * 60}{Style.RESET_ALL}"
-        )
+        table.add_column("#", style="dim", width=4, justify="center")
+        table.add_column("IP Address", style="white", width=20)
+        table.add_column("MAC Address", style="dim cyan", width=22)
 
         if not self.ip_mac_table:
-            print(f"  {Fore.YELLOW}(empty — no ARP traffic observed yet){Style.RESET_ALL}")
-        else:
-            # Header
-            print(
-                f"  {'IP Address':<20} {'MAC Address':<20}"
+            table.add_row(
+                "--",
+                "[dim yellow](empty — no ARP traffic observed yet)[/dim yellow]",
+                "[dim]--[/dim]",
             )
-            print(f"  {'-' * 18:<20} {'-' * 17:<20}")
+        else:
+            for idx, (ip_addr, mac_addr) in enumerate(
+                sorted(self.ip_mac_table.items()), 1
+            ):
+                table.add_row(str(idx), ip_addr, mac_addr)
 
-            for ip_addr, mac_addr in sorted(self.ip_mac_table.items()):
-                print(f"  {ip_addr:<20} {mac_addr:<20}")
-
-        print(f"{Fore.CYAN}{'=' * 60}{Style.RESET_ALL}\n")
+        console.print()
+        console.print(table)
+        console.print()
 
     def print_alert_summary(self):
         """
-        Print a summary of all alerts raised during the session.
+        Print a summary of all alerts raised during the session
+        using a Rich Panel with red border.
         """
-        print(
-            f"\n{Fore.RED}{'=' * 60}{Style.RESET_ALL}"
-        )
-        print(
-            f"{Fore.RED}  ARP Spoofing Alert Summary{Style.RESET_ALL}"
-        )
-        print(
-            f"{Fore.RED}{'=' * 60}{Style.RESET_ALL}"
-        )
-
         if self.alert_count == 0:
-            print(
-                f"  {Fore.GREEN}[OK] No suspicious ARP activity detected.{Style.RESET_ALL}"
+            summary_text = (
+                "[bold bright_green][+] No suspicious ARP activity detected.[/bold bright_green]\n\n"
+                "[dim]All IP-to-MAC mappings remained consistent throughout the session.[/dim]"
             )
+            border_color = "bright_green"
         else:
-            print(
-                f"  {Fore.RED}Total alerts: {self.alert_count}{Style.RESET_ALL}\n"
-            )
+            lines = [
+                f"[bold bright_red]Total alerts: {self.alert_count}[/bold bright_red]\n"
+            ]
             for entry in self.history:
-                print(
-                    f"  [{entry['time']}] {entry['ip']}: "
-                    f"{entry['old_mac']} -> {entry['new_mac']}"
+                lines.append(
+                    f"  [dim]{entry['time']}[/dim]  "
+                    f"[white]{entry['ip']}[/white]: "
+                    f"[dim red]{entry['old_mac']}[/dim red] → "
+                    f"[bold red]{entry['new_mac']}[/bold red]"
                 )
+            summary_text = "\n".join(lines)
+            border_color = "bright_red"
 
-        print(f"{Fore.RED}{'=' * 60}{Style.RESET_ALL}\n")
+        console.print(
+            Panel(
+                summary_text,
+                title="[bold bright_white]:: ARP Spoofing Alert Summary[/bold bright_white]",
+                border_style=border_color,
+                box=box.DOUBLE_EDGE,
+                padding=(1, 2),
+            )
+        )
 
     def get_stats(self):
         """
@@ -219,4 +235,5 @@ class ARPDetector:
             "alert_count": self.alert_count,
             "history": self.history,
         }
+
 # ARP table mapping integrity check

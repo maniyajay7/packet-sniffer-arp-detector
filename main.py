@@ -6,8 +6,7 @@
 ║  monitoring: live packet sniffing, PCAP analysis, and real-time  ║
 ║  ARP spoofing detection using IP-to-MAC mapping validation.      ║
 ║                                                                  ║
-║  Author  : Maniya Jay Maheshbhai                                 ║
-║  ID      : 24DCS050                                              ║
+║  Author  : Maniya Jay                                            ║                                            ║
 ║  Institute: Devang Patel Institute of Advance Technology         ║
 ║             and Research (DEPSTAR)                                ║
 ║                                                                  ║

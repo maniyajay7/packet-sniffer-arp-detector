@@ -215,20 +215,6 @@ Follow these steps to safely demonstrate the tool's capabilities:
 
 ---
 
-## 📸 Screenshots Guide
-
-For your project submission, capture the following screenshots showing off the new UI:
-
-1. **Boot Sequence:** Run `python main.py` and capture the animated progress bars.
-2. **Main Menu:** Capture the CwX ASCII banner and the interactive numbered options.
-3. **System Info:** Select option `6` to show the beautiful system information panel.
-4. **PCAP Analysis (Verbose):** Select option `2` and analyze `samples/sample_traffic.pcap`. Capture the colorful packet summaries and the progress bar.
-5. **ARP Alerts & Tables:** During the analysis, capture the **red spoofing alerts** and the final **IP-to-MAC mapping table**.
-6. **Audit Logs:** Select option `5` to show the recent logs formatted cleanly in a Rich table.
-7. **CLI Help Screen:** Run `python main.py --help` to show the backward-compatible mode.
-
----
-
 ## 🔧 Troubleshooting
 
 | Problem | Solution |

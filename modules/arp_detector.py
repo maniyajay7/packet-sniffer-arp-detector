@@ -219,3 +219,4 @@ class ARPDetector:
             "alert_count": self.alert_count,
             "history": self.history,
         }
+# ARP table mapping integrity check
